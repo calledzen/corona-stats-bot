@@ -25,7 +25,7 @@ c!impfung | Zeigt dir Informationen zu den Impfungen an
 
 c!map | Zeigt eine Deutschland Karte mit nach Inzidenz gefärbten Gebieten an
 
-c!help | Zeigt eine Hilfe Ansicht an
+c!help | Zeigt eine Hilfe Ansicht an!
 
 c!invite | Lade diesen Bot auf deinen Server ein!
 
