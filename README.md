@@ -9,21 +9,26 @@ Die Daten sind nur auf Deutschland zugewiesen. Wir übernehmen keine Haftung fü
 _Der Bot wurde vom AtlantisDevelopment Team entworfen!_
 
 # Commands
-**cr!invite** | _Lade diesen Bot auf deinen Server ein!_
+c!states | Zeigt dir Corona Informationen zu den Bundesländern an
 
-**cr!map** | _Zeigt eine Deutschland Karte mit nach Inzidenz gefärbten Gebieten an_
+c!info | Zeigt wichtige Informationen über den Bot an
 
-**cr!vote** | _Vote für unseren Bot!_
+c!setupstats | Erstellt Channel mit aktuellen Corona Daten!
 
-**cr!setprefix** | _Setzt den Server Prefix_
+c!vote | Vote für unseren Bot!
 
-**cr!info** | _Zeigt wichtige Informationen über den Bot an_
+c!stats | Zeigt eine Liste an aktuellen Zahlen an
 
-**cr!help** | _Zeigt eine Hilfe Ansicht an_
+c!setprefix | Setzt den Server Prefix
 
-**cr!stats** | _Zeigt eine Liste an aktuellen Zahlen an_
+c!impfung | Zeigt dir Informationen zu den Impfungen an
 
-**cr!setupstats** | _Erstellt Channel mit aktuellen Corona Daten!_
+c!map | Zeigt eine Deutschland Karte mit nach Inzidenz gefärbten Gebieten an
+
+c!help | Zeigt eine Hilfe Ansicht an
+
+c!invite | Lade diesen Bot auf deinen Server ein!
+
 
 # Lizenz und Verwendung vom Source Code
 **Es ist strengstens untersagt den Bot Code ohne Absprache und Erlaubnis zu verwenden. Der Code wurde zu Aufklärungszwecken für Server hochgeladen und dient nicht zur Eigenbenutzung!
