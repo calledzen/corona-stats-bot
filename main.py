@@ -1,4 +1,5 @@
 import os
+from keep_alive import keep_alive
 import discord
 import time
 from discord.ext import commands
@@ -7,13 +8,13 @@ import botdb
 import requests
 import asyncio
 from datetime import datetime
+from discord_components import *
 botdb.setupdb()
-
 # ----------
 STANDARDPREFIX = "c!"
 global PREFIX
 PREFIX = "c!"
-VERSION = "1.1.2"
+VERSION = "1.3.2"
 COLOR = 0xF94242
 # ----------
 
@@ -34,6 +35,7 @@ async def get_prefix(bot, message):
         return PREFIX
 
 bot = commands.Bot(command_prefix=get_prefix)
+DiscordComponents(bot)
 bot.remove_command("help")
 @bot.event
 async def on_ready():
@@ -54,7 +56,8 @@ async def on_ready():
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing,
                                                                name="❤️| Echtzeit Corona Daten"))
         await asyncio.sleep(10)
-        if str(datetime.now().time())[:5] == "00:15":
+        if str(datetime.now().time())[:5] == "13:00":
+            print("updated 1")
             for guild in bot.guilds:
                 response = requests.get("https://api.corona-zahlen.org/germany")
                 response = response.json()
@@ -65,6 +68,7 @@ async def on_ready():
                         await channel.edit(name=f"Fälle pro Woche・{seperate_number(int(response['casesPerWeek']))}")
                     if "Hospitalisierung・" in channel.name:
                         await channel.edit(name=f"Hospitalisierung・{str(round((response['hospitalization']['incidence7Days']), 3)).replace('.', ',')}")
+            print("updated 2")
 
 
 @bot.command(name="help", help="Zeigt eine Hilfe Ansicht an",
@@ -122,8 +126,8 @@ async def stats_cmd(ctx):
 
 
 
-@bot.command(name="stats", help="Zeigt eine Liste an aktuellen Zahlen an",
-                  description=f"Dieser Command zeigt dir die aktuellen Corona Zahlen von Deutschland, einer Stadt oder einem Bundesland!\n**Benutzung:**\n`PREFIXVARstats [city / state] [Name]` \n oder \n`{PREFIX}stats`")
+@bot.command(name="stats", aliases=["coronastats", "corona", "citystats", "zahlen"], help="Zeigt eine Liste an aktuellen Zahlen an",
+                  description=f"Dieser Command zeigt dir die aktuellen Corona Zahlen von Deutschland oder einer Stadt!\n**Benutzung:**\n`PREFIXVARstats <Stadtname>` \n oder \n`{PREFIX}stats`")
 async def stats_cmd(ctx, *args):
     try:
         if not args:
@@ -141,12 +145,10 @@ async def stats_cmd(ctx, *args):
             e.add_field(name='Fälle pro Woche', value=" " + seperate_number(int(response["casesPerWeek"])), inline=True)
             e.add_field(name='Hospitalisierungsrate', value=" " + str(round((response["hospitalization"]["incidence7Days"]), 3)).replace('.', ','), inline=True)
             await ctx.send(embed=e)
-        elif args[1]:
-            if args[0] in ['city', 'c']:
+        elif args[0]:
                 response = requests.get("https://api.corona-zahlen.org/districts")
                 response = response.json()
                 args = list(args)
-                args.remove(args[0])
                 cityname = ' '.join(map(str,args))
                 v = False
                 l = False
@@ -158,36 +160,6 @@ async def stats_cmd(ctx, *args):
                 if v == False:
                     errmsg = await ctx.send(
                             embed=buildEmb(":no_entry_sign: 〢 Fehler", f"Die Stadt `{cityname}` wurde leider nicht gefunden!"))
-                    time.sleep(5)
-                    await errmsg.delete()
-                else:
-                    e = discord.Embed(title=f"Coronazahlen | " + cityname, colour=COLOR, timestamp=datetime.utcnow(), description="Alle wichtigen aktuellen Zahlen mit Daten des RKIs! \n _Letzes Update: " +
-                                          str(datetime.strptime(response["meta"]["lastUpdate"],"%Y-%m-%dT%H:%M:%S.%fZ")) + "_")
-                    e.set_footer(text="CoronaStats Bot ",
-                                     icon_url="https://cdn.discordapp.com/avatars/917807713948418048/c4d836e14dccf875c9ccdc1023574fee.png?size=32")
-
-                    e.add_field(name='Insgesamte Infizierte', value=" " + seperate_number(int(response1["cases"])), inline=True)
-                    e.add_field(name='Insgesamte Tode', value=" " + seperate_number(int(response1["deaths"])), inline=True)
-                    e.add_field(name='Insgesamte Geheilte', value=" " + seperate_number(int(response1["recovered"])), inline=True)
-                    e.add_field(name='7 Tage Inzidenz', value=" " + str(round(response1["weekIncidence"], 3)).replace('.', ','), inline=True)
-                    e.add_field(name='Fälle pro Woche', value=" " + seperate_number(int(response1["casesPerWeek"])), inline=True)
-                    await ctx.send(embed=e)
-            elif args[0] in ['state', 's']:
-                response = requests.get("https://api.corona-zahlen.org/states")
-                response = response.json()
-                args = list(args)
-                args.remove(args[0])
-                cityname = ' '.join(map(str,args))
-                v = False
-                l = False
-                for namecode in response["data"].keys():
-                    if response["data"][namecode]["name"] == args[0]:
-                        v = True
-                        response1 = response["data"][namecode]
-
-                if v == False:
-                    errmsg = await ctx.send(
-                            embed=buildEmb(":no_entry_sign: 〢 Fehler", f"Das Bundesland `{cityname}` wurde leider nicht gefunden!"))
                     time.sleep(5)
                     await errmsg.delete()
                 else:
@@ -219,6 +191,7 @@ async def stats_cmd(ctx, *args):
             await ctx.send(embed=e)
     except Exception:
         pass
+
 
 @bot.command(name="map", help="Zeigt eine Deutschland Karte mit nach Inzidenz gefärbten Gebieten an",
                   description=f"Dieser Command zeigt dir eine Karte von Deutschland an, die dir mit verschiedenen Farben die aktuellen Inzidenz-Zahlen in den Regionen angibt\n**Benutzung:** `PREFIXVARmap`")
@@ -271,10 +244,131 @@ async def invite_cmd(ctx):
 
 @bot.command(name="vote", help="Vote für unseren Bot!",
                   description=f"Dieser Command gibt dir den Vote Link für unseren Bot!\n**Benutzung:** `PREFIXVARvote`")
-async def invite_cmd(ctx):
+async def vote_cmd(ctx):
     await ctx.send(embed=buildEmb("Vote | Bot", "────────────────────\n \u200b "
                                                   "\n Du kannst [hier](https://top.gg/bot/917807713948418048/vote) für unseren Bot voten!"
                                                   "\n \u200b \n────────────────────\n"))
+
+def getpercentage(part, whole):
+  return 100 * float(part)/float(whole)
+
+
+@bot.command(name="impfung", aliases=["impfungen", "vaccination"], help="Zeigt dir Informationen zu den Impfungen an",
+                  description=f"Dieser Command zeigt dir alle wichtigen Informationen rund um die aktuelle Impf-Lage an!\n**Benutzung:** `PREFIXVARimpfung <states>`")
+async def impfung_cmd(ctx, *args):
+    if not args:
+        response = requests.get("https://api.corona-zahlen.org/vaccinations")
+        response = response.json()
+        e = discord.Embed(title="Impfungen | Deutschland", colour=COLOR, timestamp=datetime.utcnow(),
+                          description="Alle wichtigen aktuellen Zahlen zu den Impfungen mit Daten des RKIs! \n _Letzes Update: " +
+                                      str(datetime.strptime(response["meta"]["lastUpdate"], "%Y-%m-%dT%H:%M:%S.%fZ")) + "_")
+        e.set_footer(text="CoronaStats Bot ",
+                     icon_url="https://cdn.discordapp.com/avatars/917807713948418048/c4d836e14dccf875c9ccdc1023574fee.png?size=32")
+
+        e.add_field(name='Ingesamte Impfungen', value=" " + seperate_number(int(response["data"]["administeredVaccinations"])), inline=True)
+        e.add_field(name='Impfungquote', value=" " + str(round(response["data"]["quote"], 3)*100).replace('.', ',') + "%", inline=True)
+        e.add_field(name='1 / 2 Impfungen', value=" " + seperate_number(int(response["data"]["vaccinated"])), inline=True)
+        e.add_field(name='2 / 2 Impfungen', value=" " + seperate_number(int(response["data"]["secondVaccination"]["vaccinated"])), inline=True)
+        e.add_field(name='Geboostet', value=" " + seperate_number(int(response["data"]["boosterVaccination"]["vaccinated"])), inline=True)
+        e.add_field(name='Gestern Geimpft', value=" " + seperate_number(int(response["data"]["latestDailyVaccinations"]["vaccinated"])), inline=True)
+        e.add_field(name='Impfstoffe',value="Biontech: **" + str(round(getpercentage(int(response["data"]["vaccination"]["biontech"]), int(response["data"]["vaccinated"])),2)).replace('.', ',') +
+                                            "%**\nModerna: **" + str(round(getpercentage(int(response["data"]["vaccination"]["moderna"]), int(response["data"]["vaccinated"])),2)).replace('.', ',') +
+                                            "%**\nAstraZeneca: **" + str(round(getpercentage(int(response["data"]["vaccination"]["astraZeneca"]), int(response["data"]["vaccinated"])),2)).replace('.', ',') +
+                                            "%**\nJanssen: **" + str(round(getpercentage(int(response["data"]["vaccination"]["janssen"]), int(response["data"]["vaccinated"])),2)).replace('.', ',') + "%**",inline=True)
+        await ctx.send(embed=e)
+
+    elif len(args) == 1:
+        if args[0] == "states":
+            response = requests.get("https://api.corona-zahlen.org/vaccinations")
+            response = response.json()
+            t = []
+            for namecode in response["data"]["states"].keys():
+                t.append(SelectOption(label=str(response["data"]["states"][namecode]["name"]),
+                                      value=str(response["data"]["states"][namecode]["name"])))
+
+            await ctx.send(embed=buildEmb("Impfungen | Bundesländer",
+                                          "Wähle unten ein Bundesland aus, um aktuelle Impfungens-Daten über dieses zu erhalten!"),
+                           components=[
+                               Select(
+                                   placeholder="Wähle ein Bundesland",
+                                   options=t
+                               )
+                           ])
+
+            res = await bot.wait_for("select_option")
+            if res.channel == ctx.message.channel:
+                    response1 = []
+                    cityname = str({res.values[0]}).replace("'", "").replace("{", "").replace("}", "")
+                    v = False
+                    for namecode in response["data"]["states"].keys():
+                        if response["data"]["states"][namecode]["name"] == cityname:
+                            v = True
+                            response1 = response["data"]["states"][namecode]
+
+                    e = discord.Embed(title=f"Impfungen | {response1['name']}", colour=COLOR, timestamp=datetime.utcnow(),
+                                      description="Alle wichtigen aktuellen Zahlen zu den Impfungen mit Daten des RKIs! \n _Letzes Update: " +
+                                                  str(datetime.strptime(response["meta"]["lastUpdate"], "%Y-%m-%dT%H:%M:%S.%fZ")) + "_")
+                    e.set_footer(text="CoronaStats Bot ",
+                                 icon_url="https://cdn.discordapp.com/avatars/917807713948418048/c4d836e14dccf875c9ccdc1023574fee.png?size=32")
+
+                    e.add_field(name='Ingesamte Impfungen', value=" " + seperate_number(int(response1["administeredVaccinations"])), inline=True)
+                    e.add_field(name='Impfungquote', value=" " + str(round(response1["quote"], 3)*100).replace('.', ',') + "%", inline=True)
+                    e.add_field(name='1 / 2 Impfungen', value=" " + seperate_number(int(response1["vaccinated"])), inline=True)
+                    e.add_field(name='2 / 2 Impfungen', value=" " + seperate_number(int(response1["secondVaccination"]["vaccinated"])), inline=True)
+                    e.add_field(name='Geboostet', value=" " + seperate_number(int(response1["boosterVaccination"]["vaccinated"])), inline=True)
+                    e.add_field(name='Impfstoffe',value="Biontech: **" + str(round(getpercentage(int(response1["vaccination"]["biontech"]), int(response1["vaccinated"])),2)).replace('.', ',') +
+                                                        "%**\nModerna: **" + str(round(getpercentage(int(response1["vaccination"]["moderna"]), int(response1["vaccinated"])),2)).replace('.', ',') +
+                                                        "%**\nAstraZeneca: **" + str(round(getpercentage(int(response1["vaccination"]["astraZeneca"]), int(response1["vaccinated"])),2)).replace('.', ',') +
+                                                        "%**\nJanssen: **" + str(round(getpercentage(int(response1["vaccination"]["janssen"]), int(response1["vaccinated"])),2)).replace('.', ',') + "%**",inline=False)
+                    await res.send(embed=e)
+
+
+
+
+
+
+@bot.command(name="states" , aliases=["bundesland", "bundesländer"], help="Zeigt dir Corona Informationen zu den Bundesländern an",
+                  description=f"Dieser Command zeigt dir alle wichtigen Informationen über die Bundesländer von Deutschland an! \n**Benutzung:** `PREFIXVARstates`")
+async def states_cmd(ctx):
+    response = requests.get("https://api.corona-zahlen.org/states")
+    response = response.json()
+    t = []
+    for namecode in response["data"].keys():
+        t.append(SelectOption(label=str(response["data"][namecode]["name"]), value=str(response["data"][namecode]["name"])))
+
+
+    await ctx.send(embed=buildEmb("Corona | Bundesländer", "Wähle unten ein Bundesland aus, um aktuelle Corona Daten über dieses zu erhalten!"), components=[
+        Select(
+            placeholder="Wähle ein Bundesland",
+            options = t
+        )
+    ])
+
+    res = await bot.wait_for("select_option")
+    if res.channel == ctx.message.channel:
+            response1 = []
+            cityname = str({res.values[0]}).replace("'", "").replace("{", "").replace("}", "")
+            v = False
+            for namecode in response["data"].keys():
+                if response["data"][namecode]["name"] == cityname:
+                    v = True
+                    response1 = response["data"][namecode]
+            e = discord.Embed(title=f"Coronazahlen | " + cityname, colour=COLOR, timestamp=datetime.utcnow(),
+                              description="Alle wichtigen aktuellen Zahlen mit Daten des RKIs! \n _Letzes Update: " +
+                                          str(datetime.strptime(response["meta"]["lastUpdate"],
+                                                                "%Y-%m-%dT%H:%M:%S.%fZ")) + "_")
+            e.set_footer(text="CoronaStats Bot ",
+                         icon_url="https://cdn.discordapp.com/avatars/917807713948418048/c4d836e14dccf875c9ccdc1023574fee.png?size=32")
+
+            e.add_field(name='Insgesamte Infizierte', value=" " + seperate_number(int(response1["cases"])), inline=True)
+            e.add_field(name='Insgesamte Tode', value=" " + seperate_number(int(response1["deaths"])), inline=True)
+            e.add_field(name='Insgesamte Geheilte', value=" " + seperate_number(int(response1["recovered"])),
+                        inline=True)
+            e.add_field(name='7 Tage Inzidenz', value=" " + str(round(response1["weekIncidence"], 3)).replace('.', ','),
+                        inline=True)
+            e.add_field(name='Fälle pro Woche', value=" " + seperate_number(int(response1["casesPerWeek"])),
+                        inline=True)
+            await res.send(embed=e)
 
 
 @bot.event
@@ -289,4 +383,5 @@ async def on_command_error(ctx, error):
 
 
 
-bot.run(UNSER_BOT_TOKEN)
+keep_alive()
+bot.run(os.environ['token'])
